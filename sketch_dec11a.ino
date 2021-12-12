@@ -21,10 +21,6 @@ textEffect_t scrollEffect = PA_SCROLL_LEFT;
 textPosition_t scrollAlign = PA_LEFT;
 uint16_t scrollPause = 2000; // in milliseconds
 
-// Global message buffers shared by Serial and Scrolling functions
-#define  BUF_SIZE  75
-char newMessage[BUF_SIZE] = { "Hello! Enter new message?" };
-
 void setup()
 {
   P.begin();
@@ -34,12 +30,12 @@ void setup()
 void connectingWifi() {
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
-    displayMessageForAtLeast("Connecting...", 1000);
+    display("Connecting...", 1000);
   }
-  displayMessageForAtLeast("Connected!", 3000);
+  display("Connected!", 3000);
 }
 
-void displayMessageForAtLeast(char* text, long milis) {
+void display(char* text, long milis) {
   long startTime = millis();
   long elapsedTime = 0;
   while (elapsedTime < milis) {
@@ -53,5 +49,5 @@ void displayMessageForAtLeast(char* text, long milis) {
 
 void loop()
 {
-  displayMessageForAtLeast("Hello! Enter new message?", 1);
+  display("Hello! Enter new message?", 1);
 }
