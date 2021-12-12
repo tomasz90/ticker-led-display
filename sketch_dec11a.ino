@@ -4,6 +4,8 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <ESPDateTime.h>
+#include <TimeLib.h>
 
 #define MAX_DEVICES 4 //number of led matrix connect in series
 #define CS_PIN 15
@@ -15,6 +17,10 @@
 const char* ssid = "***REMOVED***";
 const char* password = "***REMOVED***";
 
+unsigned long interval = 86400000;
+unsigned long nextUpdateTime = 0;
+String yesterday = "";
+
 // SOFTWARE SPI
 MD_Parola P = MD_Parola(HARDWARE_TYPE, DATA_PIN, CLK_PIN, CS_PIN, MAX_DEVICES);
 
@@ -23,11 +29,9 @@ textEffect_t scrollEffect = PA_SCROLL_LEFT;
 textPosition_t scrollAlign = PA_LEFT;
 uint16_t scrollPause = 2000; // in milliseconds
 
-HTTPClient http;
 const int httpsPort = 443;                                                          //Bitcoin price API powered by CoinDesk - https://www.coindesk.com/price/bitcoin
-const String url = "http://api.coindesk.com/v1/bpi/currentprice/BTC.json";
-const String historyURL = "http://api.coindesk.com/v1/bpi/historical/close.json";
-const String cryptoCode = "BTC";
+const String url = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=USD";
+const String historyURL = "https://api.coingecko.com/api/v3/coins/ethereum/history?date=";
 
 struct Data {
   String price;
@@ -51,13 +55,39 @@ void connectingWifi() {
 
 void loop()
 {
-  Data d = getData();
+  String date = getCurrentDate();
+  Data d = getData(date);
   String text = d.price + " BTC/USD " + "   " + d.yesterdayChange + "%";
   const char* msg = {text.c_str()};
   displayMsg(msg, 60000);
 }
 
-Data getData() {
+String getCurrentDate() {
+  unsigned long currentTime = millis();
+  if (nextUpdateTime - currentTime < 0 || nextUpdateTime - currentTime > interval) {
+    Serial.print("updating time..");
+    time_t nowS = DateTime.now();
+    long int sec = 1639329382;
+    Serial.print("Now seconds: ");
+    Serial.print(sec);
+    unsigned long timeTillUpdateMs = (interval - (sec % interval / 1000)) * 1000;
+    nextUpdateTime = millis() + timeTillUpdateMs;
+ 
+    unsigned long t = sec - interval / 1000;
+    Serial.print(" Yesterday seconds: ");
+    Serial.print(t);
+
+    Serial.print(" Yesterday was: ");
+    char buffer[40];
+    sprintf(buffer, "%02d-%02d-%04d", day(t), month(t), year(t));
+    yesterday = String(buffer);
+  }
+  return yesterday;
+}
+
+Data getData(String date) {
+  
+  HTTPClient http;
   Serial.print("Connecting to ");                                                       //Display url on Serial monitor for debugging
   Serial.println(url);
 
@@ -79,13 +109,13 @@ Data getData() {
   Serial.print("HTTP Status Code: ");
   Serial.println(httpCode);
 
-  String BTCUSDPrice = doc["bpi"]["USD"]["rate_float"].as<String>();                    //Store crypto price and update date in local variables
-  String lastUpdated = doc["time"]["updated"].as<String>();
+  String BTCUSDPrice = doc["ethereum"]["usd"].as<String>();                    //Store crypto price and update date in local variables
   http.end();
-
+  
+  Serial.print("ETH price: " + BTCUSDPrice);
   Serial.print("Getting history...");
   StaticJsonDocument<2000> historyDoc;
-  http.begin(historyURL);                                                               //Get historical crypto price from API
+  http.begin(historyURL+date);                                                               //Get historical crypto price from API
   int historyHttpCode = http.GET();
   DeserializationError historyError = deserializeJson(historyDoc, http.getString());
 
