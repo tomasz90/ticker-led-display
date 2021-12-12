@@ -4,8 +4,9 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
-#include <ESPDateTime.h>
+#include <NTPClient.h>
 #include <TimeLib.h>
+#include <WiFiUdp.h>
 
 #define MAX_DEVICES 4 //number of led matrix connect in series
 #define CS_PIN 15
@@ -28,6 +29,9 @@ const int httpsPort = 443;                                                      
 const String url = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=USD";
 const String historyURL = "https://api.coingecko.com/api/v3/coins/ethereum/history?date=";
 
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
+
 struct Data {
   String price;
   String yesterdayChange;
@@ -38,6 +42,7 @@ void setup()
   Serial.begin(115200);
   P.begin();
   connectingWifi();
+  timeClient.begin();
 }
 
 void connectingWifi() {
@@ -52,7 +57,7 @@ void loop()
 {
   String date = getCurrentDate();
   Data d = getData(date);
-  String text = d.price + " BTC/USD " + "   " + d.yesterdayChange + "%";
+  String text = d.price + " ETH/USD " + "   " + d.yesterdayChange + "%";
   const char* msg = {text.c_str()};
   displayMsg(msg, 60000);
 }
@@ -60,10 +65,12 @@ void loop()
 String getCurrentDate() {
   unsigned long currentTime = millis();
   if (nextUpdateTime - currentTime < 0 || nextUpdateTime - currentTime > interval) {
-    time_t nowS = DateTime.now();
-    long int sec = 1639329382;
+    Serial.println("Getting time..");
+    timeClient.update();
+    long sec = timeClient.getEpochTime();
+    //long int sec = 1639329382;
     Serial.print("Now seconds: ");
-    Serial.print(sec);
+    Serial.println(sec);
     unsigned long timeTillUpdateMs = (interval - (sec % interval / 1000)) * 1000;
     nextUpdateTime = millis() + timeTillUpdateMs;
     unsigned long t = sec - interval / 1000;
@@ -128,10 +135,12 @@ Data getData(String date) {
   Serial.println(yesterdayPrice);
 
   double yPrice = yesterdayPrice.toDouble();
-  double percentChange = (BTCUSDPrice.toDouble() - yPrice / yPrice) * 100;
+  double percentChange = ((BTCUSDPrice.toDouble() - yPrice) / yPrice) * 100;
 
+  Serial.println("Percent change");
+  Serial.println(percentChange);
   return (Data) {
-    BTCUSDPrice, String(percentChange, 1)
+    String(BTCUSDPrice.toDouble(), 0), String(percentChange, 1)
   };
 }
 
