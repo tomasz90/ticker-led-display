@@ -25,7 +25,7 @@ String yesterday = "";
 // SOFTWARE SPI
 MD_Parola P = MD_Parola(HARDWARE_TYPE, DATA_PIN, CLK_PIN, CS_PIN, MAX_DEVICES);
 
-const int httpsPort = 443;                                                          //Bitcoin price API powered by CoinDesk - https://www.coindesk.com/price/bitcoin
+const int httpsPort = 443;
 const String url = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=USD";
 const String historyURL = "https://api.coingecko.com/api/v3/coins/ethereum/history?date=";
 
@@ -37,8 +37,7 @@ struct Data {
   String yesterdayChange;
 };
 
-void setup()
-{
+void setup() {
   Serial.begin(115200);
   P.begin();
   connectingWifi();
@@ -53,13 +52,12 @@ void connectingWifi() {
   displayMsg("Connected!", 5000);
 }
 
-void loop()
-{
+void loop() {
   String date = getCurrentDate();
   Data d = getData(date);
   String text = d.price + " ETH/USD " + "   " + d.yesterdayChange + "%";
   const char* msg = {text.c_str()};
-  displayMsg(msg, 60000);
+  displayMsg(msg, 300000);
 }
 
 String getCurrentDate() {
@@ -85,63 +83,47 @@ String getCurrentDate() {
 Data getData(String date) {
 
   HTTPClient http;
-  Serial.print("Connecting to ");                                                       //Display url on Serial monitor for debugging
-  Serial.println(url);
 
   http.begin(url);
-  int httpCode = http.GET();                                                            //Get crypto price from API
+  int httpCode = http.GET();
   StaticJsonDocument<256> doc;
   DeserializationError error = deserializeJson(doc, http.getString());
 
-  if (error)                                                                            //Display error message if unsuccessful
-  {
+  if (error) {
+    return getErrorIfOccur(error);
+  }
+
+  double price = doc["ethereum"]["usd"].as<String>().toDouble();
+  http.end();
+
+  http.begin(historyURL + date);
+  int historyHttpCode = http.GET();
+  DynamicJsonDocument historyDoc(16000);
+  DeserializationError historyError = deserializeJson(historyDoc, http.getString());
+
+  if (historyError) {
+    return getErrorIfOccur(historyError);
+  }
+
+  double yesterdayPrice = historyDoc["market_data"]["current_price"]["usd"].as<String>().toDouble();
+  http.end();
+
+  double percentChange = ((price - yesterdayPrice) / yesterdayPrice) * 100;
+
+  return (Data) {
+    String(price, 0), String(percentChange, 1)
+  };
+}
+
+Data getErrorIfOccur(DeserializationError error) {
+  if (error) {
     Serial.print(F("deserializeJson Failed"));
     Serial.println(error.f_str());
     delay(2500);
     return (Data) {
-      "", ""
+      "failed", "deserilize data"
     };
   }
-
-  Serial.print("HTTP Status Code: ");
-  Serial.println(httpCode);
-
-  String BTCUSDPrice = doc["ethereum"]["usd"].as<String>();
-  http.end();
-
-  Serial.print("ETH price: " + BTCUSDPrice);
-  Serial.print("Getting history...");
-  DynamicJsonDocument historyDoc(16000);
-  http.begin(historyURL + date);
-  int historyHttpCode = http.GET();
-  DeserializationError historyError = deserializeJson(historyDoc, http.getString());
-
-  if (historyError) {
-    Serial.print(F("deserializeJson(History) failed"));
-    Serial.println(historyError.f_str());
-    delay(2500);
-    return (Data) {
-      "", ""
-    };
-  }
-
-  String yesterdayPrice = historyDoc["market_data"]["current_price"]["usd"].as<String>();
-  http.end();
-
-  Serial.print("BTCUSD Price: ");
-  Serial.println(BTCUSDPrice.toDouble());
-
-  Serial.print("Yesterday's Price: ");
-  Serial.println(yesterdayPrice);
-
-  double yPrice = yesterdayPrice.toDouble();
-  double percentChange = ((BTCUSDPrice.toDouble() - yPrice) / yPrice) * 100;
-
-  Serial.println("Percent change");
-  Serial.println(percentChange);
-  return (Data) {
-    String(BTCUSDPrice.toDouble(), 0), String(percentChange, 1)
-  };
 }
 
 void displayMsg(const char* text, long milis) {
