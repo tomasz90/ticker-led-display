@@ -63,18 +63,15 @@ void loop() {
 String getCurrentDate() {
   unsigned long currentTime = millis();
   if (nextUpdateTime - currentTime < 0 || nextUpdateTime - currentTime > interval) {
-    Serial.println("Getting time..");
     timeClient.update();
-    long sec = timeClient.getEpochTime();
-    //long int sec = 1639329382;
-    Serial.print("Now seconds: ");
-    Serial.println(sec);
-    unsigned long timeTillUpdateMs = (interval - (sec % interval / 1000)) * 1000;
+    long todayS = timeClient.getEpochTime();
+    
+    unsigned long timeTillUpdateMs = (interval - (todayS % interval / 1000)) * 1000;
     nextUpdateTime = millis() + timeTillUpdateMs;
-    unsigned long t = sec - interval / 1000;
-    Serial.print(" Yesterday was: ");
+    
+    unsigned long yesterdayS = todayS - interval / 1000;
     char buffer[80];
-    sprintf(buffer, "%02d-%02d-%04d", day(t), month(t), year(t));
+    sprintf(buffer, "%02d-%02d-%04d", day(yesterdayS), month(yesterdayS), year(yesterdayS));
     yesterday = String(buffer);
   }
   return yesterday;
