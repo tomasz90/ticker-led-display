@@ -8,7 +8,7 @@
 #include <TimeLib.h>
 #include <WiFiUdp.h>
 
-#define MAX_DEVICES 4 //number of led matrix connect in series
+#define MAX_DEVICES 6 //number of led matrix connect in series
 #define CS_PIN 15
 #define CLK_PIN 14
 #define DATA_PIN 12
@@ -32,6 +32,8 @@ const String historyURL = "https://api.coingecko.com/api/v3/coins/ethereum/histo
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
+TaskHandle_t taskHandle = NULL;
+
 struct Data {
   String price;
   String yesterdayChange;
@@ -40,16 +42,8 @@ struct Data {
 void setup() {
   Serial.begin(115200);
   P.begin();
-  connectingWifi();
+  connectWifi();
   timeClient.begin();
-}
-
-void connectingWifi() {
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    displayMsg("Connecting...", 1000);
-  }
-  displayMsg("Connected!", 5000);
 }
 
 void loop() {
@@ -57,7 +51,21 @@ void loop() {
   Data d = getData(date);
   String text = d.price + " ETH/USD " + "   " + d.yesterdayChange + "%";
   const char* msg = {text.c_str()};
-  displayMsg(msg, 300000);
+  displayText(msg);
+  delay(300000);
+  if(WiFi.status() != WL_CONNECTED) {
+    connectWifi();
+  }
+}
+
+void connectWifi() {
+  WiFi.begin(ssid, password);
+  displayText("Connecting...");
+  delay(10000);
+  if (WiFi.status() != WL_CONNECTED) {
+    ESP.restart();
+  }
+  displayText("Connected!");
 }
 
 String getCurrentDate() {
@@ -65,10 +73,10 @@ String getCurrentDate() {
   if (nextUpdateTime - currentTime < 0 || nextUpdateTime - currentTime > interval) {
     timeClient.update();
     long todayS = timeClient.getEpochTime();
-    
+
     unsigned long timeTillUpdateMs = (interval - (todayS % interval / 1000)) * 1000;
     nextUpdateTime = millis() + timeTillUpdateMs;
-    
+
     unsigned long yesterdayS = todayS - interval / 1000;
     char buffer[80];
     sprintf(buffer, "%02d-%02d-%04d", day(yesterdayS), month(yesterdayS), year(yesterdayS));
@@ -107,8 +115,15 @@ Data getData(String date) {
 
   double percentChange = ((price - yesterdayPrice) / yesterdayPrice) * 100;
 
+  String percentChangeStr = "";
+
+  if(percentChange > 0) {
+    percentChangeStr = "+";
+  }
+  percentChangeStr.concat(String(percentChange, 1));
+
   return (Data) {
-    String(price, 0), String(percentChange, 1)
+    String(price, 0), percentChangeStr
   };
 }
 
@@ -123,14 +138,45 @@ Data getErrorIfOccur(DeserializationError error) {
   }
 }
 
-void displayMsg(const char* text, long milis) {
-  long startTime = millis();
-  long elapsedTime = 0;
-  while (elapsedTime < milis) {
-    if (P.displayAnimate())
+void displayText(const void *text) {
+
+  if (taskHandle != NULL) {
+    cancelText(taskHandle);
+  }
+
+  taskHandle = TaskHandle_t();
+
+  Serial.println("Creating task");
+  xTaskCreate(
+    animateText,
+    "Task 1",
+    1000,
+    const_cast<void*>(text),
+    1,
+    &taskHandle
+  );
+}
+
+void animateText(void *param)
+{
+  P.displayText((char*)param, PA_LEFT, 48, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
+  for (;;) {
+    if (P.displayAnimate()) // If finished displaying message
     {
-      P.displayText(text, PA_LEFT, 48, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
+      Serial.println("this is still running");
+      P.displayReset();
     }
-    elapsedTime = millis() - startTime;
+    vTaskDelay(10);
+  }
+}
+
+void cancelText(TaskHandle_t task1Handle) {
+  bool stopped = false;
+  while (!stopped) {
+    if (P.displayAnimate()) {
+      Serial.println("trying delete task..");
+      vTaskDelete(task1Handle);
+      stopped = true;
+    }
   }
 }
