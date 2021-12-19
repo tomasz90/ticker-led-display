@@ -26,8 +26,8 @@ String yesterday = "";
 MD_Parola P = MD_Parola(HARDWARE_TYPE, DATA_PIN, CLK_PIN, CS_PIN, MAX_DEVICES);
 
 const int httpsPort = 443;
-const String url = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=USD";
-const String historyURL = "https://api.coingecko.com/api/v3/coins/ethereum/history?date=";
+const String coinUrl = "https://api.coingecko.com/api/v3/simple/price?ids=COIN&vs_currencies=USD";
+const String coinHistoryUrl = "https://api.coingecko.com/api/v3/coins/COIN/history?date=";
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
@@ -48,12 +48,14 @@ void setup() {
 
 void loop() {
   String date = getCurrentDate();
-  Data d = getData(date);
-  String text = d.price + " ETH/USD " + "   " + d.yesterdayChange + "%";
-  const char* msg = {text.c_str()};
+  Data btc = getData(date, "bitcoin");
+  Data eth = getData(date, "ethereum");
+  String btcMsg = btc.price + " BTC/USD " + "  " + btc.yesterdayChange + "%" + "        " + eth.price + " ETH/USD " + "  " + eth.yesterdayChange + "%";
+  //String ethMsg = 
+  const char* msg = (btcMsg).c_str();
   displayText(msg);
   delay(300000);
-  if(WiFi.status() != WL_CONNECTED) {
+  if (WiFi.status() != WL_CONNECTED) {
     connectWifi();
   }
 }
@@ -85,10 +87,13 @@ String getCurrentDate() {
   return yesterday;
 }
 
-Data getData(String date) {
+Data getData(String date, String coin) {
 
   HTTPClient http;
 
+  String url = coinUrl;
+  url.replace("COIN", coin);
+  
   http.begin(url);
   int httpCode = http.GET();
   StaticJsonDocument<256> doc;
@@ -98,10 +103,13 @@ Data getData(String date) {
     return getErrorIfOccur(error);
   }
 
-  double price = doc["ethereum"]["usd"].as<String>().toDouble();
+  double price = doc[coin]["usd"].as<String>().toDouble();
   http.end();
 
-  http.begin(historyURL + date);
+  String historyUrl = coinHistoryUrl;
+  historyUrl.replace("COIN", coin);
+  
+  http.begin(historyUrl + date);
   int historyHttpCode = http.GET();
   DynamicJsonDocument historyDoc(16000);
   DeserializationError historyError = deserializeJson(historyDoc, http.getString());
@@ -117,7 +125,7 @@ Data getData(String date) {
 
   String percentChangeStr = "";
 
-  if(percentChange > 0) {
+  if (percentChange > 0) {
     percentChangeStr = "+";
   }
   percentChangeStr.concat(String(percentChange, 1));
@@ -166,7 +174,7 @@ void animateText(void *param)
       Serial.println("this is still running");
       P.displayReset();
     }
-    vTaskDelay(10);
+    vTaskDelay(5);
   }
 }
 
