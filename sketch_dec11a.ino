@@ -50,9 +50,8 @@ void loop() {
   String date = getCurrentDate();
   Data btc = getData(date, "bitcoin");
   Data eth = getData(date, "ethereum");
-  String btcMsg = btc.price + " BTC/USD " + "  " + btc.yesterdayChange + "%" + "        " + eth.price + " ETH/USD " + "  " + eth.yesterdayChange + "%";
-  //String ethMsg = 
-  const char* msg = (btcMsg).c_str();
+  String wholeMsg = btc.price + " BTC/USD " + "  " + btc.yesterdayChange + "%" + "        " + eth.price + " ETH/USD " + "  " + eth.yesterdayChange + "%";
+  const char* msg = (wholeMsg).c_str();
   displayText(msg);
   delay(300000);
   if (WiFi.status() != WL_CONNECTED) {
