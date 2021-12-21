@@ -4,9 +4,6 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
-#include <NTPClient.h>
-#include <TimeLib.h>
-#include <WiFiUdp.h>
 
 #define MAX_DEVICES 10 //number of led matrix connect in series
 #define CS_PIN 15
@@ -18,19 +15,10 @@
 char* ssid = "***REMOVED***";
 char* password = "***REMOVED***";
 
-unsigned long interval = 86400000;
-unsigned long nextUpdateTime = 0;
-String yesterday = "";
-
 // SOFTWARE SPI
 MD_Parola P = MD_Parola(HARDWARE_TYPE, DATA_PIN, CLK_PIN, CS_PIN, MAX_DEVICES);
 
-const int httpsPort = 443;
-const String coinUrl = "https://api.binance.com/api/v3/ticker/price?symbol=COINUSDT";
-const String coinHistoryUrl = "https://api.binance.com/api/v3/ticker/24hr?symbol=COINUSDT";
-
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP);
+const String coinUrl = "https://api.binance.com/api/v3/ticker/24hr?symbol=COINUSDT";
 
 TaskHandle_t taskHandle = NULL;
 
@@ -43,7 +31,6 @@ void setup() {
   Serial.begin(115200);
   P.begin();
   connectWifi();
-  timeClient.begin();
 }
 
 void loop() {
@@ -85,22 +72,9 @@ Data getData(String coin) {
     return getErrorIfOccur(error);
   }
 
-  double price = doc["price"].as<String>().toDouble();
-  http.end();
+  double price = doc["lastPrice"].as<String>().toDouble();
 
-  String historyUrl = coinHistoryUrl;
-  historyUrl.replace("COIN", coin);
-  
-  http.begin(historyUrl);
-  int historyHttpCode = http.GET();
-  DynamicJsonDocument historyDoc(8000);
-  DeserializationError historyError = deserializeJson(historyDoc, http.getString());
-
-  if (historyError) {
-    return getErrorIfOccur(historyError);
-  }
-
-  double percentChange = historyDoc["priceChangePercent"].as<String>().toDouble();
+  double percentChange = doc["priceChangePercent"].as<String>().toDouble();
   http.end();
 
   String percentChangeStr = "";
@@ -138,7 +112,7 @@ void displayText(const void *text) {
   xTaskCreate(
     animateText,
     "Task 1",
-    5000,
+    1000,
     const_cast<void*>(text),
     1,
     &taskHandle
@@ -163,6 +137,7 @@ void cancelText(TaskHandle_t task1Handle) {
   while (!stopped) {
     if (P.displayAnimate()) {
       Serial.println("trying delete task..");
+      malloc(1000);
       vTaskDelete(task1Handle);
       stopped = true;
     }
