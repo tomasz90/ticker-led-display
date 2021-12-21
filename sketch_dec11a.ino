@@ -8,7 +8,7 @@
 #include <TimeLib.h>
 #include <WiFiUdp.h>
 
-#define MAX_DEVICES 6 //number of led matrix connect in series
+#define MAX_DEVICES 10 //number of led matrix connect in series
 #define CS_PIN 15
 #define CLK_PIN 14
 #define DATA_PIN 12
@@ -26,8 +26,8 @@ String yesterday = "";
 MD_Parola P = MD_Parola(HARDWARE_TYPE, DATA_PIN, CLK_PIN, CS_PIN, MAX_DEVICES);
 
 const int httpsPort = 443;
-const String coinUrl = "https://api.coingecko.com/api/v3/simple/price?ids=COIN&vs_currencies=USD";
-const String coinHistoryUrl = "https://api.coingecko.com/api/v3/coins/COIN/history?date=";
+const String coinUrl = "https://api.binance.com/api/v3/ticker/price?symbol=COINUSDT";
+const String coinHistoryUrl = "https://api.binance.com/api/v3/ticker/24hr?symbol=COINUSDT";
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
@@ -47,11 +47,11 @@ void setup() {
 }
 
 void loop() {
-  String date = getCurrentDate();
-  Data btc = getData(date, "bitcoin");
-  Data eth = getData(date, "ethereum");
-  String wholeMsg = btc.price + " BTC/USD " + "  " + btc.yesterdayChange + "%" + "        " + eth.price + " ETH/USD " + "  " + eth.yesterdayChange + "%";
+  Data btc = getData("BTC");
+  Data eth = getData("ETH");
+  String wholeMsg = eth.price + " ETH/USD " + "  " + eth.yesterdayChange + "%" + "        " +  btc.price + " BTC/USD " + "  " + btc.yesterdayChange + "%";
   const char* msg = (wholeMsg).c_str();
+  P.setIntensity(15);
   displayText(msg);
   delay(300000);
   if (WiFi.status() != WL_CONNECTED) {
@@ -62,31 +62,14 @@ void loop() {
 void connectWifi() {
   WiFi.begin(ssid, password);
   displayText("Connecting...");
-  delay(10000);
+  delay(20000);
   if (WiFi.status() != WL_CONNECTED) {
     ESP.restart();
   }
   displayText("Connected!");
 }
 
-String getCurrentDate() {
-  unsigned long currentTime = millis();
-  if (nextUpdateTime - currentTime < 0 || nextUpdateTime - currentTime > interval) {
-    timeClient.update();
-    long todayS = timeClient.getEpochTime();
-
-    unsigned long timeTillUpdateMs = (interval - (todayS % interval / 1000)) * 1000;
-    nextUpdateTime = millis() + timeTillUpdateMs;
-
-    unsigned long yesterdayS = todayS - interval / 1000;
-    char buffer[80];
-    sprintf(buffer, "%02d-%02d-%04d", day(yesterdayS), month(yesterdayS), year(yesterdayS));
-    yesterday = String(buffer);
-  }
-  return yesterday;
-}
-
-Data getData(String date, String coin) {
+Data getData(String coin) {
 
   HTTPClient http;
 
@@ -102,25 +85,23 @@ Data getData(String date, String coin) {
     return getErrorIfOccur(error);
   }
 
-  double price = doc[coin]["usd"].as<String>().toDouble();
+  double price = doc["price"].as<String>().toDouble();
   http.end();
 
   String historyUrl = coinHistoryUrl;
   historyUrl.replace("COIN", coin);
   
-  http.begin(historyUrl + date);
+  http.begin(historyUrl);
   int historyHttpCode = http.GET();
-  DynamicJsonDocument historyDoc(16000);
+  DynamicJsonDocument historyDoc(8000);
   DeserializationError historyError = deserializeJson(historyDoc, http.getString());
 
   if (historyError) {
     return getErrorIfOccur(historyError);
   }
 
-  double yesterdayPrice = historyDoc["market_data"]["current_price"]["usd"].as<String>().toDouble();
+  double percentChange = historyDoc["priceChangePercent"].as<String>().toDouble();
   http.end();
-
-  double percentChange = ((price - yesterdayPrice) / yesterdayPrice) * 100;
 
   String percentChangeStr = "";
 
@@ -157,7 +138,7 @@ void displayText(const void *text) {
   xTaskCreate(
     animateText,
     "Task 1",
-    1000,
+    5000,
     const_cast<void*>(text),
     1,
     &taskHandle
