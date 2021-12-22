@@ -143,7 +143,7 @@ void animateText(void *param)
       Serial.println("this is still running");
       P.displayReset();
     }
-    vTaskDelay(5);
+    vTaskDelay(20);
   }
 }
 
