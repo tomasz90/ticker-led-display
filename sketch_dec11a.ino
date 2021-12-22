@@ -34,17 +34,19 @@ struct Data {
 void setup() {
   Serial.begin(115200);
   P.begin();
+  P.setIntensity(15);
   connectWifi();
 }
 
 void loop() {
+  Serial.println("Http requests begin.");
   Data btc = getData("BTC");
   Data eth = getData("ETH");
   String wholeMsg = eth.price + " ETH/USD " + "  " + eth.yesterdayChange + "%" + "        " +  btc.price + " BTC/USD " + "  " + btc.yesterdayChange + "%";
   const char* msg = (wholeMsg).c_str();
-  P.setIntensity(15);
+  Serial.println("Refreshing whith new rates.");
   displayText(msg);
-  delay(300000);
+  delay(3000);
   if (WiFi.status() != WL_CONNECTED) {
     connectWifi();
   }
