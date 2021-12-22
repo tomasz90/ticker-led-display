@@ -11,16 +11,20 @@
 #define DATA_PIN 12
 
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW
+//
+//char* ssid = "***REMOVED***";
+//char* password = "***REMOVED***";
 
-char* ssid = "***REMOVED***";
-char* password = "***REMOVED***";
+char* ssid = "htspt";
+char* password = "d633d0ec4edd";
+
+TaskHandle_t taskHandle = NULL;
+bool firstText = true;
 
 // SOFTWARE SPI
 MD_Parola P = MD_Parola(HARDWARE_TYPE, DATA_PIN, CLK_PIN, CS_PIN, MAX_DEVICES);
 
 const String coinUrl = "https://api.binance.com/api/v3/ticker/24hr?symbol=COINUSDT";
-
-TaskHandle_t taskHandle = NULL;
 
 struct Data {
   String price;
@@ -49,11 +53,21 @@ void loop() {
 void connectWifi() {
   WiFi.begin(ssid, password);
   displayText("Connecting...");
-  delay(20000);
-  if (WiFi.status() != WL_CONNECTED) {
-    ESP.restart();
-  }
+  restartIfNotConnectedOnTime(15000);
   displayText("Connected!");
+}
+
+void restartIfNotConnectedOnTime(long maxDuration) {
+  long start = millis();
+  long duration = 0;
+  while (duration < maxDuration) {
+    if(WiFi.status() == WL_CONNECTED) {
+      return; 
+    }
+    duration = millis() - start;
+    delay(100);
+  }
+  ESP.restart();
 }
 
 Data getData(String coin) {
@@ -65,7 +79,7 @@ Data getData(String coin) {
   
   http.begin(url);
   int httpCode = http.GET();
-  StaticJsonDocument<256> doc;
+  StaticJsonDocument<2000> doc;
   DeserializationError error = deserializeJson(doc, http.getString());
 
   if (error) {
@@ -103,7 +117,8 @@ Data getErrorIfOccur(DeserializationError error) {
 void displayText(const void *text) {
 
   if (taskHandle != NULL) {
-    cancelText(taskHandle);
+    Serial.println("Inside if....");
+    cancelText();
   }
 
   taskHandle = TaskHandle_t();
@@ -132,13 +147,12 @@ void animateText(void *param)
   }
 }
 
-void cancelText(TaskHandle_t task1Handle) {
+void cancelText() {
   bool stopped = false;
   while (!stopped) {
     if (P.displayAnimate()) {
       Serial.println("trying delete task..");
-      malloc(1000);
-      vTaskDelete(task1Handle);
+      vTaskDelete(taskHandle);
       stopped = true;
     }
   }
