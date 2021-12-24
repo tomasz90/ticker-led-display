@@ -11,15 +11,14 @@
 #define DATA_PIN 12
 
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW
-//
-//char* ssid = "***REMOVED***";
-//char* password = "***REMOVED***";
 
-char* ssid = "htspt";
-char* password = "d633d0ec4edd";
+char* ssid = "***REMOVED***";
+char* password = "***REMOVED***";
+//
+//char* ssid = "htspt";
+//char* password = "d633d0ec4edd";
 
 TaskHandle_t taskHandle = NULL;
-bool firstText = true;
 
 // SOFTWARE SPI
 MD_Parola P = MD_Parola(HARDWARE_TYPE, DATA_PIN, CLK_PIN, CS_PIN, MAX_DEVICES);
@@ -46,7 +45,7 @@ void loop() {
   const char* msg = (wholeMsg).c_str();
   Serial.println("Refreshing whith new rates.");
   displayText(msg);
-  delay(3000);
+  delay(600000);
   if (WiFi.status() != WL_CONNECTED) {
     connectWifi();
   }
@@ -64,6 +63,7 @@ void restartIfNotConnectedOnTime(long maxDuration) {
   long duration = 0;
   while (duration < maxDuration) {
     if(WiFi.status() == WL_CONNECTED) {
+      Serial.println("connected!");
       return; 
     }
     duration = millis() - start;
@@ -137,7 +137,7 @@ void displayText(const void *text) {
 }
 
 void animateText(void *param)
-{
+{ 
   P.displayText((char*)param, PA_LEFT, 48, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
   for (;;) {
     if (P.displayAnimate()) // If finished displaying message
@@ -152,7 +152,7 @@ void animateText(void *param)
 void cancelText() {
   bool stopped = false;
   while (!stopped) {
-    if (P.displayAnimate()) {
+    if (P.getZoneStatus(0)) {
       Serial.println("trying delete task..");
       vTaskDelete(taskHandle);
       stopped = true;
