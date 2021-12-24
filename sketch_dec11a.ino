@@ -91,7 +91,7 @@ Data getData(String coin) {
     } else if(error && attempt == 10) {
       return getErrorIfOccur(error);
     }
-    delay(10000);
+    delay(60000);
     attempt++;
   }
 
