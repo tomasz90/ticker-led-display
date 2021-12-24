@@ -82,16 +82,16 @@ Data getData(String coin) {
   DeserializationError error;
   int attempt = 0;
 
-  while (attempt <= 2) {
+  while (attempt <= 10) {
     http.begin(url);
     http.GET();
     error = deserializeJson(doc, http.getString());
     if (!error) {
       break;
-    } else if(error && attempt == 2) {
+    } else if(error && attempt == 10) {
       return getErrorIfOccur(error);
     }
-    delay(2000);
+    delay(10000);
     attempt++;
   }
 
