@@ -14,7 +14,7 @@
 
 char* ssid = "***REMOVED***";
 char* password = "***REMOVED***";
-//
+
 //char* ssid = "htspt";
 //char* password = "d633d0ec4edd";
 
@@ -62,9 +62,9 @@ void restartIfNotConnectedOnTime(long maxDuration) {
   long start = millis();
   long duration = 0;
   while (duration < maxDuration) {
-    if(WiFi.status() == WL_CONNECTED) {
+    if (WiFi.status() == WL_CONNECTED) {
       Serial.println("connected!");
-      return; 
+      return;
     }
     duration = millis() - start;
     delay(100);
@@ -74,18 +74,25 @@ void restartIfNotConnectedOnTime(long maxDuration) {
 
 Data getData(String coin) {
 
-  HTTPClient http;
-
   String url = coinUrl;
   url.replace("COIN", coin);
-  
-  http.begin(url);
-  int httpCode = http.GET();
-  StaticJsonDocument<2000> doc;
-  DeserializationError error = deserializeJson(doc, http.getString());
 
-  if (error) {
-    return getErrorIfOccur(error);
+  HTTPClient http;
+  StaticJsonDocument<2000> doc;
+  DeserializationError error;
+  int attempt = 0;
+
+  while (attempt <= 2) {
+    http.begin(url);
+    http.GET();
+    error = deserializeJson(doc, http.getString());
+    if (!error) {
+      break;
+    } else if(error && attempt == 2) {
+      return getErrorIfOccur(error);
+    }
+    delay(2000);
+    attempt++;
   }
 
   double price = doc["lastPrice"].as<String>().toDouble();
@@ -137,7 +144,7 @@ void displayText(const void *text) {
 }
 
 void animateText(void *param)
-{ 
+{
   P.displayText((char*)param, PA_LEFT, 48, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
   for (;;) {
     if (P.displayAnimate()) // If finished displaying message
