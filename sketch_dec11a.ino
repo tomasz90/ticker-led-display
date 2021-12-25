@@ -34,6 +34,7 @@ void setup() {
   Serial.begin(115200);
   P.begin();
   P.setIntensity(15);
+  P.setScrollSpacing(9);
   connectWifi();
 }
 
@@ -41,7 +42,7 @@ void loop() {
   Serial.println("Http requests begin.");
   Data btc = getData("BTC");
   Data eth = getData("ETH");
-  String wholeMsg = eth.price + " ETH/USD " + "  " + eth.yesterdayChange + "%" + "        " +  btc.price + " BTC/USD " + "  " + btc.yesterdayChange + "%";
+  String wholeMsg = eth.price + " ETH/USD " + "  " + eth.yesterdayChange + "%   ||" + "   " +  btc.price + " BTC/USD " + "  " + btc.yesterdayChange + "%   ||";
   const char* msg = (wholeMsg).c_str();
   Serial.println("Refreshing whith new rates.");
   displayText(msg);
@@ -91,7 +92,7 @@ Data getData(String coin) {
     } else if(error && attempt == 10) {
       return getErrorIfOccur(error);
     }
-    delay(60000);
+    delay(30000);
     attempt++;
   }
 
@@ -145,14 +146,14 @@ void displayText(const void *text) {
 
 void animateText(void *param)
 {
-  P.displayText((char*)param, PA_LEFT, 48, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
+  P.displayText((char*)param, PA_LEFT, 45, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
   for (;;) {
     if (P.displayAnimate()) // If finished displaying message
     {
       Serial.println("this is still running");
       P.displayReset();
     }
-    vTaskDelay(20);
+    vTaskDelay(10);
   }
 }
 
