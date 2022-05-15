@@ -1,50 +1,33 @@
-#include <MD_Parola.h>
-#include <MD_MAX72xx.h>
-#include <SPI.h>
 #include <WiFi.h>
-#include <HTTPClient.h>
+#include <WiFiManager.h>
 #include <ArduinoJson.h>
-
-char* ssid = "***REMOVED***";
-char* password = "***REMOVED***";
 
 struct Data {
   String price;
   String yesterdayChange;
 };
 
+WiFiManager manager;
+
 void setup() {
   Serial.begin(115200);
   beginDisplaying();
-  connectWifi();
+  updateText("Connecting...");
+  manager.setConnectTimeout(10);
+  manager.setConfigPortalTimeout(120);
+  manager.autoConnect("ESP_AP", "password");
 }
 
 void loop() {
+
   String rates = getData();
   updateText(rates);
-  delay(15000);
+
   if (WiFi.status() != WL_CONNECTED) {
-    connectWifi();
-  }
-}
-
-void connectWifi() {
-  WiFi.begin(ssid, password);
-  updateText("Connecting...");
-  restartIfNotConnectedOnTime(15000);
-  updateText("Connected!");
-}
-
-void restartIfNotConnectedOnTime(long maxDuration) {
-  long start = millis();
-  long duration = 0;
-  while (duration < maxDuration) {
-    if (WiFi.status() == WL_CONNECTED) {
-      Serial.println("connected!");
-      return;
+    if (!WiFi.reconnect()) {
+      updateText("Failed connect wifi...");
     }
-    duration = millis() - start;
-    delay(100);
   }
-  ESP.restart();
+
+  delay(30000);
 }

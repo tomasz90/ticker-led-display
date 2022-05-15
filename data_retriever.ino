@@ -1,3 +1,5 @@
+#include <HTTPClient.h>
+
 const String coinUrl = "https://api.binance.com/api/v3/ticker/24hr?symbol=COINUSDT";
 
 String getData() {
@@ -16,16 +18,16 @@ Data getDataForCoin(String coin) {
   DeserializationError error;
   int attempt = 0;
 
-  while (attempt <= 10) {
+  while (attempt <= 3) {
     http.begin(url);
     http.GET();
     error = deserializeJson(doc, http.getString());
     if (!error) {
       break;
-    } else if(error && attempt == 10) {
-      return getErrorIfOccur(error);
+    } else if(error && attempt == 3) {
+      return (Data) {"request",  "failed"};
     }
-    delay(30000);
+    delay(5000);
     attempt++;
   }
 
@@ -44,15 +46,4 @@ Data getDataForCoin(String coin) {
   return (Data) {
     String(price, 0), percentChangeStr
   };
-}
-
-Data getErrorIfOccur(DeserializationError error) {
-  if (error) {
-    Serial.print(F("deserializeJson Failed"));
-    Serial.println(error.f_str());
-    delay(2500);
-    return (Data) {
-      "failed", "deserilize data"
-    };
-  }
 }

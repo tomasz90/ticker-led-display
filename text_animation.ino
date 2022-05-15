@@ -1,3 +1,7 @@
+#include <MD_Parola.h>
+#include <MD_MAX72xx.h>
+#include <SPI.h>
+
 #define MAX_DEVICES 10 //number of led matrix connect in series
 #define CS_PIN 15
 #define CLK_PIN 14
@@ -10,18 +14,15 @@ char curMessage[BUF_SIZE] = { "" };
 char newMessage[BUF_SIZE] = { "" };
 bool newMessageAvailable = true;
 
-TaskHandle_t taskHandle = NULL;
-
 // SOFTWARE SPI
 MD_Parola P = MD_Parola(HARDWARE_TYPE, DATA_PIN, CLK_PIN, CS_PIN, MAX_DEVICES);
+
 void beginDisplaying() {
   P.begin();
   P.setIntensity(15);
   P.setScrollSpacing(9);
   
-  if (taskHandle == NULL) {
-    taskHandle = TaskHandle_t();
-  }
+  TaskHandle_t taskHandle = TaskHandle_t();
 
   Serial.println("Creating task");
   xTaskCreate(
