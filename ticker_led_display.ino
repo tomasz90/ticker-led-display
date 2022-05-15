@@ -5,25 +5,8 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
-#define MAX_DEVICES 10 //number of led matrix connect in series
-#define CS_PIN 15
-#define CLK_PIN 14
-#define DATA_PIN 12
-
-#define HARDWARE_TYPE MD_MAX72XX::FC16_HW
-#define  BUF_SIZE  75
-
-char curMessage[BUF_SIZE] = { "" };
-char newMessage[BUF_SIZE] = { "" };
-bool newMessageAvailable = true;
-
 char* ssid = "***REMOVED***";
 char* password = "***REMOVED***";
-
-TaskHandle_t taskHandle = NULL;
-
-// SOFTWARE SPI
-MD_Parola P = MD_Parola(HARDWARE_TYPE, DATA_PIN, CLK_PIN, CS_PIN, MAX_DEVICES);
 
 struct Data {
   String price;
