@@ -15,7 +15,7 @@ void setup() {
   updateText("Connecting...");
   manager.setConnectTimeout(10);
   manager.setConfigPortalTimeout(120);
-  manager.autoConnect("ESP_AP", "password");
+  manager.autoConnect("ESP_TICKER", "password");
 }
 
 void loop() {
