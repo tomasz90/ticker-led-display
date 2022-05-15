@@ -1,6 +1,12 @@
 const String coinUrl = "https://api.binance.com/api/v3/ticker/24hr?symbol=COINUSDT";
 
-Data getData(String coin) {
+String getData() {
+  Data btc = getDataForCoin("BTC");
+  Data eth = getDataForCoin("ETH");
+  return eth.price + " ETH/USD " + "  " + eth.yesterdayChange + "%     " +  btc.price + " BTC/USD " + "  " + btc.yesterdayChange + "%     ";
+}
+
+Data getDataForCoin(String coin) {
 
   String url = coinUrl;
   url.replace("COIN", coin);

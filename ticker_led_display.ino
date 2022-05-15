@@ -11,6 +11,11 @@
 #define DATA_PIN 12
 
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW
+#define  BUF_SIZE  75
+
+char curMessage[BUF_SIZE] = { "" };
+char newMessage[BUF_SIZE] = { "" };
+bool newMessageAvailable = true;
 
 char* ssid = "***REMOVED***";
 char* password = "***REMOVED***";
@@ -27,21 +32,14 @@ struct Data {
 
 void setup() {
   Serial.begin(115200);
-  P.begin();
-  P.setIntensity(15);
-  P.setScrollSpacing(9);
+  beginDisplaying();
   connectWifi();
 }
 
 void loop() {
-  Serial.println("Http requests begin.");
-  Data btc = getData("BTC");
-  Data eth = getData("ETH");
-  String wholeMsg = eth.price + " ETH/USD " + "  " + eth.yesterdayChange + "%     " +  btc.price + " BTC/USD " + "  " + btc.yesterdayChange + "%     ";
-  const char* msg = (wholeMsg).c_str();
-  Serial.println("Refreshing whith new rates.");
-  displayText(msg);
-  delay(600000);
+  String rates = getData();
+  updateText(rates);
+  delay(15000);
   if (WiFi.status() != WL_CONNECTED) {
     connectWifi();
   }
@@ -49,9 +47,9 @@ void loop() {
 
 void connectWifi() {
   WiFi.begin(ssid, password);
-  displayText("Connecting...");
+  updateText("Connecting...");
   restartIfNotConnectedOnTime(15000);
-  displayText("Connected!");
+  updateText("Connected!");
 }
 
 void restartIfNotConnectedOnTime(long maxDuration) {
