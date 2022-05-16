@@ -1,5 +1,5 @@
 # Crypto led ticker
-![VID_20220516_031840 (3)](https://user-images.githubusercontent.com/49351206/168514664-b4d46868-bf53-447a-b277-4ffd8d9d9578.gif)
+<img src="https://user-images.githubusercontent.com/49351206/168514664-b4d46868-bf53-447a-b277-4ffd8d9d9578.gif" width="350px" height="190px"/>
 
 
 The ticker displays prices of two main cryptocurrencies - Ether and Bitcoin. It gathers data every 30s, but you can set different interval.
@@ -19,3 +19,7 @@ Setting up:
   * load program into esp32
   * connect to access point created by controller
   * configure your SSID and password
+
+![IMG_20220516_032641](https://user-images.githubusercontent.com/49351206/168516140-4e75cc4f-21ca-4d38-84e3-fbbd928f04eb.jpg)
+
+![IMG_20220516_032647](https://user-images.githubusercontent.com/49351206/168516155-df955d3f-0315-4705-9438-21730ffc6aef.jpg)
