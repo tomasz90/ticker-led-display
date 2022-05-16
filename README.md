@@ -1,7 +1,8 @@
 # Crypto led ticker
 ![VID_20220516_031840 (3)](https://user-images.githubusercontent.com/49351206/168514664-b4d46868-bf53-447a-b277-4ffd8d9d9578.gif)
 
-After setting up with your local network it gathers data every 30s and display current prices of bitcoin and ethereum.
+
+The ticker displays prices of two main cryptocurrencies - Ether and Bitcoin. It gathers data every 30s, but you can set different interval.
 
 To build this project you need:
   * esp32
